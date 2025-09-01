@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  migrations:
+    image: node:16-alpine
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    environment:
+      - POSTGRES_HOST=database
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=app_local
+      - POSTGRES_PASSWORD=app_local_pass
+      - POSTGRES_DB=kupipodariday_local
+    depends_on:
+      database:
+        condition: service_healthy
+  database:
+    image: postgres:15-alpine
+    container_name: kupi-db
+    restart: unless-stopped
+    env_file:
+      - ./.env.db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: kupi-backend
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    environment:
+      - PORT=4000
+      - POSTGRES_HOST=database
+      - PGHOST=database
+      - DB_HOST=database
+      - TYPEORM_HOST=database
+      - POSTGRES_PORT=5432
+      - PGPORT=5432
+      - DB_PORT=5432
+      - TYPEORM_PORT=5432
+      - FRONTEND_ORIGIN=http://localhost:8081
+    ports:
+      - "4000:4000"
+
+  frontend:
+    container_name: kupi-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
