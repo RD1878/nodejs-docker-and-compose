@@ -7,6 +7,7 @@ services:
     volumes:
       - ./backend:/app
     environment:
+      - NODE_ENV=development
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
       - POSTGRES_USER=app_local
@@ -49,7 +50,7 @@ services:
       - PGPORT=5432
       - DB_PORT=5432
       - TYPEORM_PORT=5432
-      - FRONTEND_ORIGIN=http://localhost:8081
+      - FRONTEND_ORIGIN=https://mydockerproject.nomorepartiessbs.ru
     ports:
       - "4000:4000"
 
@@ -63,5 +64,22 @@ services:
     depends_on:
       - backend
 
+
+  caddy:
+    image: caddy:2
+    container_name: kupi-caddy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
